@@ -83,37 +83,43 @@ def pid_loop(dummy, state):
         while True:
             try:
                 tempc = sensor.temperature
-            except:
+                
+                # Update temperature history and average
+                temphist[i % 5] = tempc
+                avgtemp = sum(temphist)/len(temphist)
+                
+                # Update PID setpoint if changed
+                if state['settemp'] != lastsettemp:
+                    pid.SetPoint = state['settemp']
+                    lastsettemp = state['settemp']
+                
+                # Update state counter to show thread is alive
+                state['i'] = i
+                
+                # Update PID every 10 cycles
+                if i % 10 == 0:
+                    pid.update(avgtemp)
+                    pidout = pid.output
+                    if pidout > 100:
+                        pidout = 100
+                    elif pidout < 0:
+                        pidout = 0
+                    pidhist[i % 10] = pidout
+                    state['avgpid'] = sum(pidhist)/len(pidhist)
+
+                # Sleep and increment counter
+                sleeptime = max(0, lasttime + conf.sample_time - time())
+                sleep(sleeptime)
+                i += 1
+                lasttime = time()
+                
+            except Exception as e:
+                print(f"PID loop error: {str(e)}")
+                sleep(1)  # Add delay before retry
                 continue
-
-            # Update temperature history and average
-            temphist[i % 5] = tempc
-            avgtemp = sum(temphist)/len(temphist)
-
-            # Update PID setpoint if changed
-            if state['settemp'] != lastsettemp:
-                pid.SetPoint = state['settemp']
-                lastsettemp = state['settemp']
-
-            # Update PID every 10 cycles
-            if i % 10 == 0:
-                pid.update(avgtemp)
-                pidout = pid.output
-                if pidout > 100:
-                    pidout = 100
-                elif pidout < 0:
-                    pidout = 0
-                pidhist[i % 10] = pidout
-                state['avgpid'] = sum(pidhist)/len(pidhist)
-
-            # Sleep and increment counter
-            sleeptime = max(0, lasttime + conf.sample_time - time())
-            sleep(sleeptime)
-            i += 1
-            lasttime = time()
-
+            
     except Exception as e:
-        print(e)
+        print(f"Fatal PID loop error: {str(e)}")
     finally:
         GPIO.cleanup()
         pid.clear()
@@ -189,13 +195,19 @@ if __name__ == '__main__':
         lasti = curi
 
         if piderr > 9:
-            print ('ERROR IN PID THREAD, RESTARTING')
-            with open("FailedPIDcsv.csv","a+") as tempFile:
+            print('ERROR IN PID THREAD, RESTARTING')
+            with open("FailedPIDcsv.csv", "a+") as tempFile:
                 fieldNames = ["time"]
-                writer = csv.DictWriter(tempFile,fieldnames=fieldNames)
+                writer = csv.DictWriter(tempFile, fieldnames=fieldNames)
                 writer.writerow({"time": datetime.now()})
-        
-            # p.terminate()
+            
+            # Restart PID thread
+            p.terminate()
+            p.join()
+            p = Process(target=pid_loop, args=(1, pidstate))
+            p.daemon = True
+            p.start()
+            piderr = 0  # Reset error counter
 
         try:
             hc = urlopen(urlhc, timeout=10)
