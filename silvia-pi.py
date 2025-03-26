@@ -6,6 +6,8 @@ def he_control_loop(dummy, state,timeState):
     import RPi.GPIO as GPIO
     import config as conf
 
+    GPIO.setwarnings(False)
+    GPIO.cleanup()  # Add this line to ensure clean state
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(conf.he_pin, GPIO.OUT)
     GPIO.output(conf.he_pin, 0)
