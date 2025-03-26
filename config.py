@@ -10,11 +10,16 @@ spi_dev = 0
 # Pin # for relay connected to heating element
 he_pin = 26
 
+brew_pin = 17
+steam_pin = 22
+
+
 #overriding the time config when wanting to heat up not during normal hours
 overRide = 16
 
 # Default goal temperature
 set_temp = 101
+set_steam_temp = 150.
 # Default alarm time
 snooze = '07:00'
 

@@ -6,16 +6,23 @@ def he_control_loop(dummy, state,timeState):
     import RPi.GPIO as GPIO
     import config as conf
 
-    GPIO.setwarnings(False)
-    GPIO.cleanup()  # Add this line to ensure clean state
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(conf.he_pin, GPIO.OUT)
+    GPIO.setup(conf.steam_pin,GPIO.IN)
     GPIO.output(conf.he_pin, 0)
+    GPIO.input(conf.steam_pin)
     heating = False
 
     try:
         while True:
             pidstate['awake'] = timer.timer(timeState)
+
+
+            # if state['snoozeon'] == True:
+            #     now = datetime.now()
+            #     dt = datetime.strptime(state['snooze'], '%H:%M')
+            #     if dt.hour == now.hour and dt.minute == now.minute:
+            #         state['snoozeon'] = False
 
             avgpid = state['avgpid']
             
@@ -46,83 +53,170 @@ def he_control_loop(dummy, state,timeState):
 
 
 def pid_loop(dummy, state):
+    import sys
     from time import sleep, time
     from math import isnan
+    # import Adafruit_GPIO.SPI as SPI
     import adafruit_max31855
     import PID as PID
     import config as conf
     from datetime import datetime
+    from brewOrSteaming import steaming
     import RPi.GPIO as GPIO
     from digitalio import DigitalInOut
     import board
 
-    GPIO.setwarnings(False)
-    GPIO.setmode(GPIO.BCM)
 
     def c_to_f(c):
         return c * 9.0 / 5.0 + 32.0
-
-    # Initialize SPI and sensor
     spi = board.SPI()
     cs = DigitalInOut(board.D5)
-    sensor = adafruit_max31855.MAX31855(spi, cs)
-    
-    # Initialize PID
+    sensor = adafruit_max31855.MAX31855(spi,cs)
+    # sensor = adafruit_max31855.MAX31855(spi=SPI.SpiDev(conf.spi_port, conf.spi_dev))
     pid = PID.PID(conf.Pc, conf.Ic, conf.Dc)
     pid.SetPoint = state['settemp']
     pid.setSampleTime(conf.sample_time*5)
 
-    # Initialize variables
+    nanct = 0
     i = 0
-    pidhist = [0.] * 10
-    temphist = [0.] * 5
+    j = 0
+    pidhist = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]
+    avgpid = 0.
+    temphist = [0., 0., 0., 0., 0.]
+    avgtemp = 0.
     lastsettemp = state['settemp']
     lasttime = time()
+    sleeptime = 0
+    iscold = True
+    iswarm = False
+    lastcold = 0
+    lastwarm = 0
+    circuitBreaker = False
+    timeSinceLastSteam = None
 
     try:
-        while True:
+        while True:  # Loops 10x/second
             try:
                 tempc = sensor.temperature
+            except:
+                continue
+            steam,circuitBreaker,timeSinceLastSteam = steaming(timeSinceLastSteam)
+            state['circuitBreaker'] = circuitBreaker
+            state['steam'] = steam
+            # if isnan(tempc):
+            #     nanct += 1
+            #     if nanct > 100000:
+            #         print("ERROR IN READING TEMPERATURE LINE 98")
+            #         with open("Failedcsv.csv","a+") as tempFile:
+            #             fieldNames = ["time","avgtemp","settemp","steamtemp"]
+            #             writer = csv.DictWriter(tempFile,fieldnames=fieldNames)
+            #             writer.writerow({"time": datetime.now(), "avgtemp":state["avgtemp"],"settemp":state["settemp"],"steamtemp":state["steamtemp"]})
+        
+            #         sys.exit
+            #     continue
+            # else:
+            #     nanct = 0
+
+            # tempf = c_to_f(tempc)
+            temphist[i % 5] = tempc
+            avgtemp = sum(temphist)/len(temphist)
+            
+            #circuitbreaker is on
+            if circuitBreaker:
+                continue
+
+            if state['steam'] :
+                print("line 118 steam on hit")
+                if avgtemp < 90:
+                    lastcold = i
+
+                if avgtemp > 130:
+                    lastwarm = i
+
+                if iscold and (i-lastcold)*conf.sample_time > 60*15:
+                    pid = PID.PID(conf.Pw, conf.Iw, conf.Dw)
+                    pid.SetPoint = state['steamtemp']
+                    pid.setSampleTime(conf.sample_time*5)
+                    iscold = False
+
+                if iswarm and (i-lastwarm)*conf.sample_time > 60*15:
+                    pid = PID.PID(conf.Pc, conf.Ic, conf.Dc)
+                    pid.SetPoint = state['steamtemp']
+                    pid.setSampleTime(conf.sample_time*5)
+                    iscold = True
+
+                if state['steamtemp'] != lastsettemp:
+                    pid.SetPoint = state['steamtemp']
+                    lastsettemp = state['steamtemp']
                 
-                # Update temperature history and average
-                temphist[i % 5] = tempc
-                avgtemp = sum(temphist)/len(temphist)
-                
-                # Update PID setpoint if changed
+                print("pid.setpoint",pid.SetPoint)
+                print("avg temp",avgtemp)
+
+            else:
+                print("line 142 brew hit")
+                if avgtemp < 30:
+                    lastcold = i
+
+                if avgtemp > 90:
+                    lastwarm = i
+
+                if iscold and (i-lastcold)*conf.sample_time > 60*15:
+                    pid = PID.PID(conf.Pw, conf.Iw, conf.Dw)
+                    pid.SetPoint = state['settemp']
+                    pid.setSampleTime(conf.sample_time*5)
+                    iscold = False
+
+                if iswarm and (i-lastwarm)*conf.sample_time > 60*15:
+                    pid = PID.PID(conf.Pc, conf.Ic, conf.Dc)
+                    pid.SetPoint = state['settemp']
+                    pid.setSampleTime(conf.sample_time*5)
+                    iscold = True
+
                 if state['settemp'] != lastsettemp:
                     pid.SetPoint = state['settemp']
                     lastsettemp = state['settemp']
-                
-                # Update state counter to show thread is alive
-                state['i'] = i
-                
-                # Update PID every 10 cycles
-                if i % 10 == 0:
-                    pid.update(avgtemp)
-                    pidout = pid.output
-                    if pidout > 100:
-                        pidout = 100
-                    elif pidout < 0:
-                        pidout = 0
-                    pidhist[i % 10] = pidout
-                    state['avgpid'] = sum(pidhist)/len(pidhist)
 
-                # Sleep and increment counter
-                sleeptime = max(0, lasttime + conf.sample_time - time())
-                sleep(sleeptime)
-                i += 1
-                lasttime = time()
-                
-            except Exception as e:
-                print(f"PID loop error: {str(e)}")
-                sleep(1)  # Add delay before retry
-                continue
-            
+
+            if i % 10 == 0:
+                pid.update(avgtemp)
+                pidout = pid.output
+                pidhist[int(i/10 % 10)] = pidout
+                avgpid = sum(pidhist)/len(pidhist)
+
+                # print("pidout",pidout)
+                # print("pidHist",pidhist)
+                # print("avgpid",avgpid)
+
+            state['i'] = i
+            state['tempc'] = round(tempc, 2)
+            state['avgtemp'] = round(avgtemp, 2)
+            state['pidval'] = round(pidout, 2)
+            state['avgpid'] = round(avgpid, 2)
+            state['pterm'] = round(pid.PTerm, 2)
+            if iscold:
+                state['iterm'] = round(pid.ITerm * conf.Ic, 2)
+                state['dterm'] = round(pid.DTerm * conf.Dc, 2)
+            else:
+                state['iterm'] = round(pid.ITerm * conf.Iw, 2)
+                state['dterm'] = round(pid.DTerm * conf.Dw, 2)
+            state['iscold'] = iscold
+
+            print (datetime.now())
+            print(state)
+            print("time since last steam", timeSinceLastSteam)
+
+            sleeptime = lasttime+conf.sample_time-time()
+            if sleeptime < 0:
+                sleeptime = 0
+            sleep(sleeptime)
+            i += 1
+            lasttime = time()
+
     except Exception as e:
-        print(f"Fatal PID loop error: {str(e)}")
+        print(e)
     finally:
         GPIO.cleanup()
-        pid.clear()
+        pid.clear
 
 
 
@@ -142,6 +236,9 @@ if __name__ == '__main__':
     pidstate['snoozeon'] = False
     pidstate['i'] = 0
     pidstate['settemp'] = conf.set_temp
+    pidstate['steamtemp'] = conf.set_steam_temp
+    pidstate['circuitBreaker'] = None
+    pidstate['steam'] = False
     pidstate['avgpid'] = 0.
 
     timeState = manager.dict()    
@@ -195,19 +292,13 @@ if __name__ == '__main__':
         lasti = curi
 
         if piderr > 9:
-            print('ERROR IN PID THREAD, RESTARTING')
-            with open("FailedPIDcsv.csv", "a+") as tempFile:
+            print ('ERROR IN PID THREAD, RESTARTING')
+            with open("FailedPIDcsv.csv","a+") as tempFile:
                 fieldNames = ["time"]
-                writer = csv.DictWriter(tempFile, fieldnames=fieldNames)
+                writer = csv.DictWriter(tempFile,fieldnames=fieldNames)
                 writer.writerow({"time": datetime.now()})
-            
-            # Restart PID thread
-            p.terminate()
-            p.join()
-            p = Process(target=pid_loop, args=(1, pidstate))
-            p.daemon = True
-            p.start()
-            piderr = 0  # Reset error counter
+        
+            # p.terminate()
 
         try:
             hc = urlopen(urlhc, timeout=10)
