@@ -10,6 +10,9 @@ spi_dev = 0
 # Pin # for relay connected to heating element
 he_pin = 26
 
+#overriding the time config when wanting to heat up not during normal hours
+overRide = 16
+
 # Default goal temperature
 set_temp = 101
 # Default alarm time
