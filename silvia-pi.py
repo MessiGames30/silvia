@@ -8,27 +8,13 @@ def he_control_loop(dummy, state,timeState):
 
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(conf.he_pin, GPIO.OUT)
-    GPIO.setup(conf.steam_pin,GPIO.IN)
     GPIO.output(conf.he_pin, 0)
-    GPIO.input(conf.steam_pin)
     heating = False
 
     try:
         while True:
-            pidstate['awake'] = timer.timer(timeState)
-
-
-            # if state['snoozeon'] == True:
-            #     now = datetime.now()
-            #     dt = datetime.strptime(state['snooze'], '%H:%M')
-            #     if dt.hour == now.hour and dt.minute == now.minute:
-            #         state['snoozeon'] = False
-
-            avgpid = state['avgpid']
-            
             if not state['awake'] or state['circuitBreaker']:
-                state['heating'] = False
-                GPIO.output(conf.he_pin, 0)
+                GPIO.output(conf.he_pin, 0)  # Turn heater OFF
                 sleep(1)
             else:
                 if avgpid >= 100:
@@ -46,6 +32,8 @@ def he_control_loop(dummy, state,timeState):
                     GPIO.output(conf.he_pin, 0)
                     state['heating'] = False
                     sleep(1)
+
+            avgpid = state['avgpid']
 
     finally:
         GPIO.output(conf.he_pin, 0)

@@ -18,8 +18,8 @@ steam_pin = 22
 overRide = 16
 
 # Default goal temperature
-set_temp = 101
-set_steam_temp = 150.
+set_temp = 93
+set_steam_temp = 93.
 # Default alarm time
 snooze = '07:00'
 
@@ -45,11 +45,11 @@ TimerOffSu = '14:00'
 low_temp_b = 85
 high_temp_b = 110
 
-low_temp_s = 130
-high_temp_s = 155
+low_temp_s = 85
+high_temp_s = 115
 
 # Main loop sample rate in seconds
-sample_time = 0.1
+sample_time = 0.5
 
 # PID Proportional, Integral, and Derivative value
 # we use Ziegler Nichols method to tune, from experiment Ts=130sec, Ku = 22. Therefore
