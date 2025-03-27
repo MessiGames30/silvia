@@ -141,6 +141,15 @@ setInterval(function() {
         $("#dterm").html(resp.dterm.toFixed(2));
         $("#pidval").html(resp.pidval.toFixed(2));
         $("#avgpid").html(resp.avgpid.toFixed(2));
+        
+        // Update heating indicator
+        if (resp.heating) {
+          $("#heatingIndicator").css("background-color", "#ff4444");
+          $("#heatingStatus").text("ON");
+        } else {
+          $("#heatingIndicator").css("background-color", "#ccc");
+          $("#heatingStatus").text("OFF"); 
+        }
       },
       complete: function () {
         lastreqdone = 1;
