@@ -71,7 +71,7 @@ sudo reboot
 
 After the reboot:
 ````
-sudo git clone https://github.com/brycesub/silvia-pi.git /root/silvia-pi
+sudo git clone https://github.com/MessiGames30/silvia.git /root/silvia-pi
 sudo /root/silvia-pi/setup.sh
 ````
 This last step will download the necessariy python libraries and install the silvia-pi software in /root/silvia-pi
