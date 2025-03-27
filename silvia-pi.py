@@ -295,7 +295,7 @@ def rest_server(dummy,state):
     def post_settemp():
         try:
             settemp = float(request.forms.get('settemp'))
-            if settemp >= 200 and settemp <= 260 :
+            if settemp >= 80 and settemp <= 110 :
                 state['settemp'] = settemp
                 return str(settemp)
             else:
