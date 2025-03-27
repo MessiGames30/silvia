@@ -126,7 +126,7 @@ setInterval(function() {
          $("#btnTimerDisable").hide();
          $("#btnTimerEnable").show();
         }
-        curtemp.append(new Date().getTime(), resp.tempf);
+        curtemp.append(new Date().getTime(), resp.tempc);
         settemp.append(new Date().getTime(), resp.settemp);
         settempm.append(new Date().getTime(), resp.settemp-4);
         settempp.append(new Date().getTime(), resp.settemp+4);
