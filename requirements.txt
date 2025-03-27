@@ -1,5 +1,5 @@
-bottle
-cheroot
-RPi.GPIO
-spidev
 schedule
+cheroot
+spidev
+bottle
+RPi.GPIO

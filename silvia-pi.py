@@ -107,8 +107,8 @@ def pid_loop(dummy,state):
   import PID as PID
   import config as conf
 
-  sys.stdout = open("pid.log", "a", buffering=0)
-  sys.stderr = open("pid.err.log", "a", buffering=0)
+  sys.stdout = open("pid.log", "a", buffering=1)
+  sys.stderr = open("pid.err.log", "a", buffering=1)
 
   def c_to_f(c):
     return c * 9.0 / 5.0 + 32.0
@@ -294,7 +294,9 @@ def rest_server(dummy,state):
   def healthcheck():
     return 'OK'
 
-  run(host='0.0.0.0',port=conf.port,server='cheroot')
+  run(host='0.0.0.0', 
+      port=conf.port,
+      server='cherrypy')  # Change server to 'cherrypy' instead of 'cheroot'
 
 if __name__ == '__main__':
   from multiprocessing import Process, Manager
