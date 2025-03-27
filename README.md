@@ -1,19 +1,5 @@
-# notes
-Please use python3 version Python 3.7.3. The latest raspberry pi will be 3.11.x which is incompatiable.
-
-use 2020-02-13-raspbian-buster.zip, do not use the newest raspberry pi as the python is wrong.
-https://downloads.raspberrypi.org/raspbian/images/raspbian-2020-02-14/
-
-MAX31855PMB1 pins as follows.
-connect SS(chip enable) on GPIO 8 of the pi
-MISO,SCLK on the same pins as the pi diagram.
-VCC = 5V 
-
 # silvia-pi
 A Raspberry Pi modification to the Rancilio Silvia Espresso Machine implementing PID temperature control.
-
-#### Medium article for walkthrough
-https://medium.com/@dannyhuang_10997/rancilio-silvia-pid-mpc-via-raspberry-pi-901a14fe5681
 
 #### Currently Implemented Features:
 * Brew temperature control
@@ -60,6 +46,11 @@ https://medium.com/@dannyhuang_10997/rancilio-silvia-pid-mpc-via-raspberry-pi-90
 #### Hardware Installation
 [Installation Instructions / Pictures](http://imgur.com/a/3WLVt)
 
+#### Circuit Diagram
+High-level circuit diagram:
+
+![Circuit Diagram](media/circuit.png?raw=true "Circuit Diagram")
+
 #### Software
 * OS - Raspbian Jessie
   * Full - https://downloads.raspberrypi.org/raspbian_latest
@@ -80,7 +71,7 @@ sudo reboot
 
 After the reboot:
 ````
-sudo git clone https://github.com/Xascrimson/silvia-pi.git /root/silvia-pi
+sudo git clone https://github.com/brycesub/silvia-pi.git /root/silvia-pi
 sudo /root/silvia-pi/setup.sh
 ````
 This last step will download the necessariy python libraries and install the silvia-pi software in /root/silvia-pi

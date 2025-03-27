@@ -26,7 +26,7 @@ echo "Installing MAX31855 Thermocouple Amp library..."
 cd ~
 git clone https://github.com/adafruit/Adafruit_Python_MAX31855.git
 cd ~/Adafruit_Python_MAX31855
-python setup.py install
+python3 setup.py install
 
 echo "Installing ivPID library..."
 cd ~
@@ -34,7 +34,7 @@ git clone https://github.com/ivmech/ivPID.git
 cp ~/ivPID/PID.py ~/silvia-pi/
 
 echo "Installing remaining python libraries..."
-pip install --upgrade -r $BASEDIR/requirements.txt
+pip3 install --upgrade -r $BASEDIR/requirements.txt
 pip3 install spidev==3.4 --force-reinstall
 
 if ! grep silvia-pi.py /etc/rc.local; then
