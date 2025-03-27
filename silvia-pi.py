@@ -264,12 +264,20 @@ def rest_server(dummy,state):
     import config as conf
     import os
 
-    basedir = os.path.dirname(__file__)
-    wwwdir = basedir+'/www/'
+    logger = logging.getLogger('silvia.server')
+
+    basedir = os.path.dirname(os.path.abspath(__file__))
+    wwwdir = os.path.join(basedir, 'www')
+    
+    logger.info(f"Serving files from: {wwwdir}")
 
     @route('/')
     def docroot():
-        return static_file('index.html',wwwdir)
+        logger.info(f"Serving index.html from {wwwdir}")
+        if not os.path.exists(os.path.join(wwwdir, 'index.html')):
+            logger.error("index.html not found")
+            abort(404, "index.html not found")
+        return static_file('index.html', wwwdir)
 
     @route('/<filepath:path>')
     def servfile(filepath):

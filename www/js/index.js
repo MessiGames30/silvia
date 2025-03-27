@@ -135,7 +135,7 @@ setInterval(function() {
         dterm.append(new Date().getTime(), resp.dterm);
         pidval.append(new Date().getTime(), resp.pidval);
         avgpid.append(new Date().getTime(), resp.avgpid);
-        $("#curtemp").html(resp.tempf.toFixed(2));
+        $("#curtemp").html(resp.tempc.toFixed(2));
         $("#pterm").html(resp.pterm.toFixed(2));
         $("#iterm").html(resp.iterm.toFixed(2));
         $("#dterm").html(resp.dterm.toFixed(2));
