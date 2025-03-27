@@ -8,7 +8,7 @@ spi_dev = 0
 he_pin = 26
 
 # Default goal temperature
-set_temp = 221.
+set_temp = 93.
 
 # Default sleep/wake times
 sched_enabled = True
