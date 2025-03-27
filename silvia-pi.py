@@ -67,51 +67,66 @@ def he_control_loop(dummy,state):
 
     logger = logging.getLogger('silvia.gpio')
     
+    # Relay states (inverted logic)
+    RELAY_ON = 0   # GPIO LOW turns relay ON
+    RELAY_OFF = 1  # GPIO HIGH turns relay OFF
+    
     try:
         logger.info("Initializing GPIO...")
         GPIO.setwarnings(False)
         GPIO.cleanup()
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(conf.he_pin, GPIO.OUT)
-        GPIO.output(conf.he_pin,0)
+        # Initialize relay to OFF state
+        GPIO.output(conf.he_pin, RELAY_OFF)
+        state['heating'] = False
         logger.info(f"GPIO pin {conf.he_pin} initialized successfully")
-        
-        heating = False
 
         try:
             while True:
                 avgpid = state['avgpid']
 
-                if state['is_awake'] == False :
+                if state['is_awake'] == False:
+                    # Machine is sleeping
                     state['heating'] = False
-                    GPIO.output(conf.he_pin,0)
+                    GPIO.output(conf.he_pin, RELAY_OFF)
                     sleep(1)
                 else:
-                    if avgpid >= 100 :
+                    if avgpid >= 100:
+                        # Full power
                         state['heating'] = True
-                        GPIO.output(conf.he_pin,1)
+                        GPIO.output(conf.he_pin, RELAY_ON)
                         sleep(1)
                     elif avgpid > 0 and avgpid < 100:
+                        # PWM mode
+                        GPIO.output(conf.he_pin, RELAY_ON)
                         state['heating'] = True
-                        GPIO.output(conf.he_pin,1)
                         sleep(avgpid/100.)
-                        GPIO.output(conf.he_pin,0)
-                        sleep(1-(avgpid/100.))
+                        GPIO.output(conf.he_pin, RELAY_OFF)
                         state['heating'] = False
+                        sleep(1-(avgpid/100.))
                     else:
-                        GPIO.output(conf.he_pin,0)
+                        # No heat needed
+                        GPIO.output(conf.he_pin, RELAY_OFF)
                         state['heating'] = False
                         sleep(1)
+                
+                logger.debug(f"Heat state: PIN={GPIO.input(conf.he_pin)}, relay={'ON' if GPIO.input(conf.he_pin)==RELAY_ON else 'OFF'}, state={state['heating']}")
 
         finally:
-            GPIO.output(conf.he_pin,0)
+            # Ensure relay is OFF when exiting
+            GPIO.output(conf.he_pin, RELAY_OFF)
+            state['heating'] = False
             GPIO.cleanup()
         
     except Exception as e:
         logger.error(f"GPIO Error: {str(e)}")
+        GPIO.output(conf.he_pin, RELAY_OFF)
+        state['heating'] = False
         raise
     finally:
-        GPIO.output(conf.he_pin,0)
+        GPIO.output(conf.he_pin, RELAY_OFF)
+        state['heating'] = False
         GPIO.cleanup()
 
 def pid_loop(dummy,state):
